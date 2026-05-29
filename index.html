@@ -183,7 +183,15 @@
         .room-card.has-map { cursor: pointer; }
         .map-container { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-in-out, margin-top 0.4s ease-in-out; position: relative; border-radius: 8px; }
         .map-container.open { max-height: 600px; margin-top: 15px; }
-        .campus-map { width: 100%; height: auto; display: block; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        /* 🌟 マップ・アコーディオン設定 */
+        .campus-map { 
+            width: 100%; 
+            height: auto; 
+            display: block; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+            object-fit: contain; /* 🌟 追加：iPhoneで地図が歪むのを絶対に防ぐ！ */
+        }
         
         /* 🌟 修正：ピンのサイズと高さを整え、座標にピッタリ刺す！ */
         .pin { 
