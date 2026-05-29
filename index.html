@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>千葉大学 空き教室チェッカー (v4)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* 🌟 ベース設定：優しい背景色とモダンなフォント */
+        body { 
+            font-family: 'Noto Sans JP', sans-serif; 
+            background-color: #f4f7f6; /* 少し青みがかった明るいグレー */
+            color: #333;
+            padding: 15px; 
+            margin: 0; 
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .container { 
+            max-width: 500px; 
+            margin: 0 auto; 
+            background: transparent; 
+        }
+
+        /* 🌟 ヘッダー：グラデーションでワクワク感を演出 */
+        h1 { 
+            font-size: 1.5em; 
+            font-weight: 700;
+            text-align: center; 
+            background: linear-gradient(135deg, #2193b0, #6dd5ed);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 25px;
+        }
+        
+        /* 🌟 コントロールパネル：白背景で浮き上がらせる */
+        .controls { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 10px; 
+            justify-content: center; 
+            background: white;
+            padding: 15px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            margin-bottom: 20px; 
+        }
+        
+        select, button { 
+            padding: 10px 14px; 
+            border-radius: 10px; 
+            border: 1px solid #e0e0e0; 
+            font-size: 0.95em; 
+            font-family: inherit;
+            background-color: #fff;
+            outline: none; 
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        select:focus, button:focus { border-color: #3498db; box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1); }
+        
+        .reset-btn { 
+            background-color: #2c3e50; 
+            color: white; 
+            border: none; 
+            font-weight: 600; 
+        }
+        .reset-btn:hover { background-color: #1a252f; transform: translateY(-1px); }
+
+        /* 🌟 フィルターボタン：スマホ向け横スクロール！ */
+        .filter-container { 
+            display: flex; 
+            gap: 10px; 
+            margin-bottom: 20px; 
+            /* 🌟 修正：上下左右にしっかり余白を取り、影やボタンが見切れないようにする */
+            padding: 10px 5px 15px 5px; 
+            overflow-x: auto; 
+            white-space: nowrap; 
+            -webkit-overflow-scrolling: touch; 
+        }
+        /* スクロールバーを隠す（スッキリ見せるため） */
+        .filter-container::-webkit-scrollbar { display: none; }
+        
+        .filter-btn { 
+            background-color: white; 
+            color: #636e72; 
+            border: 1px solid #dfe6e9; 
+            border-radius: 20px; 
+            padding: 8px 16px; 
+            font-size: 0.85em; 
+            font-weight: 500;
+            flex-shrink: 0; /* ボタンが潰れないようにする */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+        .filter-btn.active { 
+            background-color: #3498db; 
+            color: white; 
+            border-color: #3498db; 
+            transform: translateY(-2px); 
+            box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
+        }
+        
+        .filter-btn.favorite-btn { border-color: #f1c40f; color: #e67e22; background-color: #fffdf5; }
+        .filter-btn.favorite-btn.active { background-color: #f1c40f; color: white; border-color: #f1c40f; box-shadow: 0 4px 10px rgba(241, 196, 15, 0.3); }
+
+        .status { font-size: 1em; margin-bottom: 15px; text-align: center; color: #7f8c8d; font-weight: 500; }
+        
+        /* 🌟 ルームカード：丸みと影で「押せる感」を演出 */
+        /* 🌟 ルームカード：丸みと影で「押せる感」を演出 */
+        .room-card { 
+            padding: 18px; 
+            margin-bottom: 15px; 
+            border-radius: 12px; /* 少しだけ丸みを抑えてスッキリと */
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            display: flex; 
+            flex-direction: column; 
+            position: relative; 
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .room-card:active { transform: scale(0.98); } /* タップした時の沈み込み */
+        
+        /* 🌟 復活＆進化：空き教室は全体を優しい緑に！ */
+        .room-card.free {
+            background-color: #f0fdf4; 
+            border: 1px solid #d1fae5;
+            border-left: 6px solid #10b981; /* 鮮やかなミントグリーンの太線 */
+        }
+        
+        /* 🌟 復活＆進化：授業中は全体を優しい赤に！ */
+        .room-card.occupied {
+            background-color: #fef2f2; 
+            border: 1px solid #fee2e2;
+            border-left: 6px solid #ef4444; /* 目立つコーラルレッドの太線 */
+        }
+        
+        .room-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            padding-right: 30px; /* 星マークと被らないように */
+        }
+        
+        .room-name {
+            font-size: 1.15em;
+            font-weight: 700;
+            color: #2d3436;
+        }
+
+        /* 🌟 ステータスバッジ（美しい丸みのあるラベル） */
+        .badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .badge-free { background-color: #e3fcef; color: #00b894; }
+        .badge-occupied { background-color: #ffefef; color: #d63031; }
+
+        .subject { font-size: 0.85em; color: #636e72; line-height: 1.4; }
+        .empty-message { text-align: center; color: #b2bec3; padding: 40px 20px; font-size: 0.95em; font-weight: 500; }
+
+        /* 星マーク */
+        .star-icon {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            font-size: 1.4em;
+            cursor: pointer;
+            color: #dfe6e9; 
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 🌟 ぽよんと動くアニメーション */
+        }
+        .star-icon.starred {
+            color: #fdcb6e; 
+            transform: scale(1.1);
+        }
+
+        /* 🌟 マップ・アコーディオン設定 */
+        .room-card.has-map { cursor: pointer; }
+        .map-container { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-in-out, margin-top 0.4s ease-in-out; position: relative; border-radius: 8px; }
+        .map-container.open { max-height: 600px; margin-top: 15px; }
+        .campus-map { width: 100%; height: auto; display: block; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        
+        /* 🌟 修正：ピンのサイズと高さを整え、座標にピッタリ刺す！ */
+        .pin { 
+            position: absolute; 
+            font-size: 32px; 
+            transform: translate(-50%, -100%); 
+            opacity: 0; 
+            text-shadow: 0 3px 6px rgba(0,0,0,0.4); 
+            z-index: 10; 
+        }
+        .map-container.open .pin { animation: pinDrop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; animation-delay: 0.2s; }
+        @keyframes pinDrop { 
+            0% { transform: translate(-50%, -300%); opacity: 0; } 
+            100% { transform: translate(-50%, -100%); opacity: 1; } 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏫 千葉大学 空き教室チェッカー</h1>
+        
+        <div class="controls">
+            <select id="faculty-select">
+                <option value="all">全学部を表示</option>
+                <option value="Z">国際教養学部</option>
+                <option value="L">文学部</option>
+                <option value="B">法政経学部</option>
+                <option value="E">教育学部</option>
+                <option value="S">理学部</option>
+                <option value="TR">工学部, 情報DS学部</option>
+                <option value="H">園芸学部</option>
+                <option value="M">医学部</option>
+                <option value="P">薬学部</option>
+                <option value="N">看護学部</option>
+            </select>
+
+            <select id="day-select">
+                <option value="0" hidden>日曜日</option>
+                <option value="1">月曜日</option>
+                <option value="2">火曜日</option>
+                <option value="3">水曜日</option>
+                <option value="4">木曜日</option>
+                <option value="5">金曜日</option>
+                <option value="6" hidden>土曜日</option>
+            </select>
+            <select id="period-select">
+                <option value="0" hidden>授業時間外</option>
+                <option value="1">1限 (08:50-)</option>
+                <option value="2">2限 (10:30-)</option>
+                <option value="3">3限 (12:50-)</option>
+                <option value="4">4限 (14:30-)</option>
+                <option value="5">5限 (16:10-)</option>
+            </select>
+            <button id="reset-btn" class="reset-btn">現在時刻</button>
+        </div>
+
+        <div class="filter-container" id="filter-buttons">
+            <!-- 🌟 追加：お気に入り絞り込みボタン -->
+            <button class="filter-btn active" data-building="all">すべて</button>
+            <button class="filter-btn favorite-btn" data-building="favorite">★ お気に入り</button>
+            <button class="filter-btn" data-building="G">総合校舎</button>
+            <button class="filter-btn" data-building="工2号棟">工2号棟</button>
+            <button class="filter-btn" data-building="工5号棟">工5号棟</button>
+            <button class="filter-btn" data-building="工9号棟">工9号棟</button>
+            <button class="filter-btn" data-building="工15号棟">工15号棟</button>
+            <button class="filter-btn" data-building="工17号棟">工17号棟</button>
+            <button class="filter-btn" data-building="情報学系">情報学系</button>
+        </div>
+
+        <div class="status">
+            <strong><span id="current-period"></span></strong>
+        </div>
+        <div id="room-list"></div>
+    </div>
+
+    <script>
+        let syllabusData = []; 
+        let currentBuildingFilter = "all"; 
+        // 🌟 追加：お気に入りを保存する配列（localStorageから読み込む）
+        let favoriteRooms = JSON.parse(localStorage.getItem('favoriteRooms')) || [];
+
+        // 🌟 修正：キャンパスマップの座標データベース（キャンパスごとに分割）
+        const campusData = {
+            "nishichiba": {
+                "mapImage": "西千葉キャンパスマップ.svg", // 西千葉のマップ画像
+                "buildings": {
+                    // あなたが作成した西千葉のデータをそのままここに残しています！
+                    "理1号館": { x: "60.1%", y: "39.5%" },
+                    "大講義室(理1号館1階)": { x: "60.1%", y: "39.5%" },
+                    "理2号館": { x: "57.7%", y: "37.1%" },
+                    "理4号館": { x: "58.7%", y: "34.3%" },
+                    "マルチメディア講義室1(理4号館1階)": { x: "58.7%", y: "34.3%" },
+                    "マルチメディア講義室2(理4号館2階)": { x: "58.7%", y: "34.3%" },
+                    "理5号館": { x: "57.1%", y: "32.1%" },
+                    "マルチメディア講義室": { x: "38.7%", y: "43.5%" },
+                    "共同研究室": { x: "38.7%", y: "43.5%" },
+                    "サッカー場": { x: "31.4%", y: "21.1%" },
+                    "陸上競技場": { x: "47.3%", y: "21.1%" },
+                    "ダンス場": { x: "45.8%", y: "26.7%" },
+                    "第1体育館": { x: "45.8%", y: "26.7%" },
+                    "第2体育館": { x: "45.8%", y: "26.7%" },
+                    "トレーニング室": { x: "45.8%", y: "26.7%" },
+                    "卓球場": { x: "45.8%", y: "26.7%" },
+                    "剣道場": { x: "52.6%", y: "26.7%" },
+                    "多目的コート": { x: "58.1%", y: "26.7%" },
+                    "共通演習室1": { x: "38.7%", y: "43.5%" },
+                    "共通演習室2": { x: "38.7%", y: "43.5%" },
+                    "共通演習室3": { x: "38.7%", y: "43.5%" },
+                    "共通演習室4": { x: "38.7%", y: "43.5%" },
+                    "国セ": { x: "50.5%", y: "62.6%" },
+                    "国セ大講義室": { x: "50.5%", y: "62.6%" },
+                    "G1": { x: "48.7%", y: "39.3%" },
+                    "G2": { x: "51.8%", y: "37%" },
+                    "G3": { x: "46%", y: "37%" },
+                    "G4": { x: "48.7%", y: "34.3%" },
+                    "G5": { x: "44.7%", y: "34.3%" },
+                    "G6": { x: "50.7%", y: "31.1%" },
+                    "G7": { x: "44.7%", y: "31.1%" },
+                    "G8": { x: "44.3%", y: "37%" },
+                    "イングリッシュハウス": { x: "40%", y: "60%" },
+                    "工10号棟": { x: "62.6%", y: "60.8%" },
+                    "工15号棟": { x: "40%", y: "60%" },
+                    "工17号棟": { x: "63%", y: "49%" },
+                    "工1号棟": { x: "68.9%", y: "79.6%" },
+                    "工2号棟": { x: "69.1%", y: "76.3%" },
+                    "工5号棟": { x: "59.4%", y: "70.8%" },
+                    "工7号棟": { x: "59.4%", y: "66.6%" },
+                    "工9号棟": { x: "59.4%", y: "62.6%" },
+                    "工15号棟": { x: "59.4%", y: "50.3%" },
+                    "工21号棟": { x: "66.8%", y: "68.5%" },
+                    "情報学系": { x: "56.6%", y: "66.4%" },
+                    "工学系総合研究棟1": { x: "64.1%", y: "71%" },
+                    "工学系総合研究棟2": { x: "62.5%", y: "57%" },
+                    "情報戦略機構": { x: "63%", y: "42.3%" },
+                    "リモセン": { x: "67.5%", y: "74.3%" },
+                    "教1": { x: "38.1%", y: "39.6%" },
+                    "教2": { x: "38.1%", y: "37.1%" },
+                    "教3": { x: "38.1%", y: "34.5%" },
+                    "教4": { x: "40.9%", y: "31.5%" },
+                    "教5": { x: "35.9%", y: "31.5%" },
+                    "大講義室": { x: "38.1%", y: "37.1%" },
+                    "音楽棟": { x: "37.1%", y: "27%" },
+                    "文学部棟": { x: "49.1%", y: "46.1%" },
+                    "法政経学部棟": { x: "49.1%", y: "43.6%" },
+                    "画像情報教室1": { x: "45.3%", y: "43.1%" },
+                    "院演習室": { x: "45.3%", y: "43.1%" },
+                    "院講義室": { x: "45.3%", y: "43.1%" },
+                    "自然科学系総合研究棟1": { x: "58.5%", y: "45.6%" },
+                    "自然科学系総合研究棟2": { x: "63.1%", y: "52%" },
+                    "高度デジタル創造センター": { x: "72.3%", y: "76.3%" }
+                }
+            },
+            "matsudo": {
+                "mapImage": "松戸キャンパスマップ.svg", // 松戸のマップ画像（これから作成するもの）
+                "buildings": {
+                    // 🌟 ここに松戸キャンパスの建物をどんどん追加していきます！
+                    "園 102講義室": { x: "52.2%", y: "65.1%" }, // 例
+                    "園 103講義室": { x: "52.2%", y: "65.1%" },  // 例
+                    "園 112講義室": { x: "52.4%", y: "59.6%" },  // 例
+                    "園 204講義室": { x: "52.2%", y: "65.1%" },  // 例
+                    "園 205講義室": { x: "52.2%", y: "65.1%" },  // 例
+                    "園 206講義室": { x: "52.2%", y: "65.1%" },  // 例
+                    "園 307講義室": { x: "52.2%", y: "65.1%" },  // 例
+                    "園 308講義室": { x: "52.2%", y: "65.1%" },  // 例
+                    "園 309講義室": { x: "52.2%", y: "65.1%" },  // 例
+                    "園 310講義室": { x: "52.2%", y: "65.1%" },
+                    "園 311講義室": { x: "52.2%", y: "65.1%" },  // 例
+                    "園 412講義室": { x: "52.2%", y: "65.1%" },  // 例
+                    "園 エキスパート演習室": { x: "52.2%", y: "65.1%" },  // 例
+                    "園 オープンラボ(1)": { x: "44%", y: "64.5%" },  // 例
+                    "園 オープンラボ(2)": { x: "44%", y: "64.5%" },  // 例
+                    "園 化学系実験室(3)": { x: "40%", y: "60%" },  // 例
+                    "園 合同講義室": { x: "52.2%", y: "65.1%" },  // 例
+                    "園 物理系実験室": { x: "52.2%", y: "65.1%" },  // 例
+                    "D棟情報処理演習室": { x: "52.4%", y: "59.6%" },  // 例
+                    "A棟": { x: "22.4%", y: "63.8%" }  // 例
+                }
+            }
+        };
+
+        // 🌟 究極版：建物名から「キャンパスの画像」と「座標」をセットで探し出す関数
+        // （「前の方に書いてあるキーワード」を最優先し、同じ位置なら「文字数の長い方」を優先する！）
+        function getCampusAndBuildingInfo(roomName) {
+            let bestMatch = null;
+            let earliestIndex = Infinity; // 一番最初に見つかった位置（小さいほど優先）
+            let longestLength = 0;        // 同じ位置なら長い方を優先
+
+            for (const [campusKey, data] of Object.entries(campusData)) {
+                for (const buildingName in data.buildings) {
+                    // includesの代わりにindexOfを使い、「何文字目に見つかったか」を調べる
+                    const matchIndex = roomName.indexOf(buildingName);
+                    
+                    if (matchIndex !== -1) { // 見つかった場合 (-1以外)
+                        
+                        // 🌟 ルール1：出現位置がより「前（数字が小さい）」にあるキーワードを最優先する
+                        if (matchIndex < earliestIndex) {
+                            earliestIndex = matchIndex;
+                            longestLength = buildingName.length;
+                            bestMatch = {
+                                campus: campusKey,
+                                mapImage: data.mapImage,
+                                coords: data.buildings[buildingName]
+                            };
+                        } 
+                        // 🌟 ルール2：出現位置が同じ場合は、文字数が長い方を優先する
+                        // （例：「理4」と「理4-」が両方先頭(0番目)に見つかった場合、長い「理4-」を優先）
+                        else if (matchIndex === earliestIndex && buildingName.length > longestLength) {
+                            longestLength = buildingName.length;
+                            bestMatch = {
+                                campus: campusKey,
+                                mapImage: data.mapImage,
+                                coords: data.buildings[buildingName]
+                            };
+                        }
+                    }
+                }
+            }
+            return bestMatch; 
+        }
+
+        async function init() {
+            try {
+                const response = await fetch('syllabus_data.json');
+                syllabusData = await response.json();
+                
+                setToCurrentTime();
+
+                document.getElementById('faculty-select').addEventListener('change', updateDisplay);
+                document.getElementById('day-select').addEventListener('change', updateDisplay);
+                document.getElementById('period-select').addEventListener('change', updateDisplay);
+                document.getElementById('reset-btn').addEventListener('click', setToCurrentTime);
+
+                const filterButtons = document.querySelectorAll('.filter-btn');
+                filterButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        filterButtons.forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        currentBuildingFilter = e.target.getAttribute('data-building');
+                        updateDisplay();
+                    });
+                });
+
+            } catch (error) {
+                console.error("エラー", error);
+                document.getElementById('room-list').innerHTML = "データの読み込みに失敗しました。";
+            }
+        }
+
+        function setToCurrentTime() {
+            const now = new Date();
+            const currentDay = now.getDay(); 
+
+            const periods = [
+                { period: 1, start: "08:50", end: "10:20" },
+                { period: 2, start: "10:30", end: "12:00" },
+                { period: 3, start: "12:50", end: "14:20" },
+                { period: 4, start: "14:30", end: "16:00" },
+                { period: 5, start: "16:10", end: "17:40" }
+            ];
+
+            const timeStr = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+            
+            let currentPeriod = 0; 
+            for (let p of periods) {
+                if (timeStr >= p.start && timeStr <= p.end) {
+                    currentPeriod = p.period;
+                    break;
+                }
+            }
+
+            if (currentDay === 0 || currentDay === 6) {
+                currentPeriod = 0;
+            }
+
+            document.getElementById('day-select').value = currentDay;
+            document.getElementById('period-select').value = currentPeriod;
+
+            updateDisplay();
+        }
+
+        // 🌟 追加：星マークがクリックされた時の処理
+        function toggleFavorite(roomName) {
+            if (favoriteRooms.includes(roomName)) {
+                // すでにお気に入りなら解除（配列から削除）
+                favoriteRooms = favoriteRooms.filter(room => room !== roomName);
+            } else {
+                // お気に入りでなければ登録（配列に追加）
+                favoriteRooms.push(roomName);
+            }
+            // localStorage に保存して次回以降も記憶させる
+            localStorage.setItem('favoriteRooms', JSON.stringify(favoriteRooms));
+            // 画面を更新して星の色を反映
+            updateDisplay();
+        }
+
+        // 🌟 追加：マップをビヨンと開閉する処理
+        function toggleMap(cardElement) {
+            const mapContainer = cardElement.querySelector('.map-container');
+            if (mapContainer) {
+                // （おまけ機能）他の開いているマップがあれば閉じる
+                document.querySelectorAll('.map-container.open').forEach(el => {
+                    if (el !== mapContainer) el.classList.remove('open');
+                });
+                
+                // タップしたカードのマップを開閉する
+                mapContainer.classList.toggle('open');
+            }
+        }
+
+        function updateDisplay() {
+            const selectedFaculty = document.getElementById('faculty-select').value;
+            const selectedDay = parseInt(document.getElementById('day-select').value);
+            const selectedPeriod = parseInt(document.getElementById('period-select').value);
+            const days = ["日", "月", "火", "水", "木", "金", "土"];
+            
+            if (selectedPeriod === 0) {
+                document.getElementById('current-period').textContent = `現在の状態: ${days[selectedDay]}曜日 授業時間外（全教室が空いています）`;
+            } else {
+                document.getElementById('current-period').textContent = `表示中の状態: ${days[selectedDay]}曜 ${selectedPeriod}限`;
+            }
+
+            const roomFaculties = {};
+            syllabusData.forEach(lesson => {
+                if (!roomFaculties[lesson.room]) {
+                    roomFaculties[lesson.room] = new Set();
+                }
+                roomFaculties[lesson.room].add(lesson.faculty);
+            });
+
+            let allRoomsInData = [...new Set(syllabusData.map(l => l.room))].filter(r => r !== "").sort();
+
+            if (selectedFaculty !== "all") {
+                allRoomsInData = allRoomsInData.filter(room => {
+                    const facultiesForThisRoom = roomFaculties[room] || new Set();
+                    return Array.from(facultiesForThisRoom).some(faculty => selectedFaculty.includes(faculty));
+                });
+            }
+
+            // 🌟 変更点：「お気に入り」絞り込みの処理を追加
+            if (currentBuildingFilter === "favorite") {
+                // favoriteRooms（お気に入りリスト）に入っている教室だけを残す
+                allRoomsInData = allRoomsInData.filter(room => favoriteRooms.includes(room));
+            } else if (currentBuildingFilter !== "all") {
+                const regex = new RegExp(`(^|[^0-9])${currentBuildingFilter}`);
+                allRoomsInData = allRoomsInData.filter(room => regex.test(room));
+            }
+
+            let occupiedData = [];
+            if (selectedPeriod !== 0) {
+                occupiedData = syllabusData.filter(
+                    lesson => lesson.day === selectedDay && lesson.period === selectedPeriod && lesson.room !== ""
+                );
+            }
+
+            const occupiedRooms = occupiedData.map(lesson => lesson.room);
+            const listElement = document.getElementById('room-list');
+            listElement.innerHTML = '';
+
+            if (allRoomsInData.length === 0) {
+                if (currentBuildingFilter === "favorite") {
+                    listElement.innerHTML = `<div class="empty-message">お気に入りに登録されている教室はありません。</div>`;
+                } else {
+                    listElement.innerHTML = `<div class="empty-message">この条件に一致する教室データはありません。</div>`;
+                }
+                return;
+            }
+
+            allRoomsInData.forEach(room => {
+                const div = document.createElement('div');
+                const isFavorite = favoriteRooms.includes(room);
+                const starClass = isFavorite ? 'star-icon starred' : 'star-icon';
+                const starSymbol = isFavorite ? '★' : '☆';
+
+                // ==========================================
+                // 🌟 修正：マップHTMLの生成（キャンパス切り替え対応）
+                // ==========================================
+                const locationInfo = getCampusAndBuildingInfo(room);
+                let mapHtml = '';
+                let mapClass = '';
+                let clickAction = '';
+                
+                // 辞書に登録されている教室なら、キャンパスに合ったマップとピンを仕込む！
+                if (locationInfo) {
+                    mapClass = 'has-map';
+                    clickAction = 'onclick="toggleMap(this)"';
+                    mapHtml = `
+                        <div class="map-container">
+                            <img src="${locationInfo.mapImage}" class="campus-map" alt="キャンパスマップ">
+                            <div class="pin" style="left: ${locationInfo.coords.x}; top: ${locationInfo.coords.y};">📍</div>
+                        </div>
+                    `;
+                }
+                // ==========================================
+
+                // カードの基本クラスを設定（マップがある場合は has-map クラスが追加される）
+                const statusClass = occupiedRooms.includes(room) ? 'occupied' : 'free';
+                div.className = `room-card ${statusClass} ${mapClass}`;
+                
+                // カード全体にクリックアクションを追加
+                if(clickAction) div.setAttribute("onclick", "toggleMap(this)");
+
+                // 星ボタンを押した時は、マップ開閉が誤爆しないように event.stopPropagation() を追加！
+                const favoriteAction = `onclick="event.stopPropagation(); toggleFavorite('${room}')"`;
+
+                // ==========================================
+                // 🌟 洗練されたHTMLカード構造の生成
+                // ==========================================
+                if (occupiedRooms.includes(room)) {
+                    const lesson = occupiedData.find(l => l.room === room);
+                    div.innerHTML = `
+                        <div class="room-header">
+                            <span class="room-name">${room}</span>
+                            <span class="badge badge-occupied">授業中</span>
+                        </div>
+                        <span class="subject">${lesson.subject}</span>
+                        <span class="${starClass}" ${favoriteAction}>${starSymbol}</span>
+                        ${mapHtml}
+                    `;
+                } else {
+                    const statusText = selectedPeriod === 0 ? "授業時間外" : "空き教室";
+                    div.innerHTML = `
+                        <div class="room-header">
+                            <span class="room-name">${room}</span>
+                            <span class="badge badge-free">${statusText}</span>
+                        </div>
+                        <span class="subject">使われていません</span>
+                        <span class="${starClass}" ${favoriteAction}>${starSymbol}</span>
+                        ${mapHtml}
+                    `;
+                }
+                listElement.appendChild(div);
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
