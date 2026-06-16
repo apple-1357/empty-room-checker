@@ -190,22 +190,31 @@
             display: block; 
             border-radius: 8px; 
             box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
-            object-fit: contain; /* 🌟 追加：iPhoneで地図が歪むのを絶対に防ぐ！ */
+            /* object-fit: contain; はSafariをバグらせる原因になるので削除！ */
         }
         
-        /* 🌟 修正：ピンのサイズと高さを整え、座標にピッタリ刺す！ */
+        /* 🌟 修正：ピンのサイズを固定し、アニメーションも統一！ */
         .pin { 
             position: absolute; 
-            font-size: 32px; 
-            transform: translate(-50%, -100%); 
+            width: 40px;  /* ピンの大きさを固定 */
+            height: 40px; 
+            transform: translate(-50%, -100%); /* 固定サイズなので -100% だけで完璧に先端が刺さる */
             opacity: 0; 
-            text-shadow: 0 3px 6px rgba(0,0,0,0.4); 
             z-index: 10; 
         }
+        
+        .pin svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+            filter: drop-shadow(0px 4px 4px rgba(0,0,0,0.2)); 
+        }
+
         .map-container.open .pin { animation: pinDrop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; animation-delay: 0.2s; }
+        
         @keyframes pinDrop { 
             0% { transform: translate(-50%, -300%); opacity: 0; } 
-            100% { transform: translate(-50%, -100%); opacity: 1; } 
+            100% { transform: translate(-50%, -100%); opacity: 1; } /* 👈 ここも -100% で統一 */
         }
     </style>
 </head>
@@ -276,7 +285,7 @@
         // 🌟 修正：キャンパスマップの座標データベース（キャンパスごとに分割）
         const campusData = {
             "nishichiba": {
-                "mapImage": "西千葉キャンパスマップ.svg", // 西千葉のマップ画像
+                "mapImage": "西千葉キャンパスマップ.png", // 西千葉のマップ画像
                 "buildings": {
                     // あなたが作成した西千葉のデータをそのままここに残しています！
                     "理1号館": { x: "60.1%", y: "39.5%" },
@@ -345,7 +354,7 @@
                 }
             },
             "matsudo": {
-                "mapImage": "松戸キャンパスマップ.svg", // 松戸のマップ画像（これから作成するもの）
+                "mapImage": "松戸キャンパスマップ.png", // 松戸のマップ画像（これから作成するもの）
                 "buildings": {
                     // 🌟 ここに松戸キャンパスの建物をどんどん追加していきます！
                     "園 102講義室": { x: "52.2%", y: "65.1%" }, // 例
@@ -580,11 +589,19 @@
                     mapHtml = `
                         <div class="map-container">
                             <img src="${locationInfo.mapImage}" class="campus-map" alt="キャンパスマップ">
-                            <div class="pin" style="left: ${locationInfo.coords.x}; top: ${locationInfo.coords.y};">📍</div>
+                            <div class="pin" style="left: ${locationInfo.coords.x}; top: ${locationInfo.coords.y};">
+                                <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                                    <ellipse cx="16" cy="30" rx="6" ry="2" fill="rgba(0,0,0,0.3)" />
+                                    <path d="M14 16 L14 28 L18 28 L18 16 Z" fill="#bdc3c7" />
+                                    <path d="M14 28 L16 32 L18 28 Z" fill="#7f8c8d" />
+                                    <ellipse cx="16" cy="14" rx="10" ry="4" fill="#c0392b" />
+                                    <circle cx="16" cy="10" r="10" fill="#e74c3c" />
+                                    <circle cx="12" cy="6" r="3" fill="#ff7979" />
+                                </svg>
+                            </div>
                         </div>
                     `;
                 }
-                // ==========================================
 
                 // カードの基本クラスを設定（マップがある場合は has-map クラスが追加される）
                 const statusClass = occupiedRooms.includes(room) ? 'occupied' : 'free';
